@@ -1,5 +1,5 @@
 #    Copyright (c) 2021 Infinity BOTs <https://t.me/Infinity_BOTs>
- 
+
 #    This program is free software: you can redistribute it and/or modify  
 #    it under the terms of the GNU General Public License as published by  
 #    the Free Software Foundation, version 3.
@@ -10,7 +10,7 @@
 #    General Public License for more details.
 
 import os
-import wget
+import yt_dlp
 from pyrogram import filters, Client
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from config import Config
@@ -44,22 +44,40 @@ async def help(client, message: Message):
 # url upload
 @JEBotZ.on_message(filters.regex(pattern=".*http.*"))
 async def urlupload(client, message: Message):
-    msg = await message.reply_text(text="Checking Url 🧐", quote=True)
+    msg = await message.reply_text(text="Checking URL 🧐", quote=True)
     url = message.text
     cap = "@JEBotZ"
-    thurl = "https://telegra.ph/file/a23b8f38fde1914a4bbe9.jpg"                  
-    try: # url download via wget to server
-         await msg.edit("Trying to download 😉")
-         lel = wget.download(url)
-         thumb = wget.download(thurl)
-         pak = "a23b8f38fde1914a4bbe9.jpg"
-         await msg.edit("Uploading File 🚶‍♂")
-         await message.reply_document(lel, caption=cap, thumb=pak) # upload downloaded file
-         await msg.delete()
-         os.remove(lel) # remove downloaded file from server
-         os.remove(thumb) # remove thumbnail file from server
-    except Exception:
-        await msg.edit("Unsupported Url 😐") # print error
+    thurl = "https://telegra.ph/file/a23b8f38fde1914a4bbe9.jpg" 
+
+    # yt-dlp options to download video
+    ydl_opts = {
+        'outtmpl': '%(title)s.%(ext)s',  # Save file with title
+        'format': 'best',  # Best quality format
+        'noplaylist': True,  # Disable playlist download
+        'quiet': True,  # Suppress verbose output
+    }
+    
+    try: 
+        # Using yt-dlp to download media file
+        await msg.edit("Trying to download the video 😉")
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            downloaded_file = ydl.prepare_filename(info_dict)
+
+        # Download thumbnail
+        thumb = wget.download(thurl)
+        pak = "a23b8f38fde1914a4bbe9.jpg"
+
+        await msg.edit("Uploading File 🤡")
+        await message.reply_document(downloaded_file, caption=cap, thumb=pak)  # upload downloaded file
+        await msg.delete()
+
+        # Remove downloaded files
+        os.remove(downloaded_file)  # Remove downloaded media file from server
+        os.remove(thumb)  # Remove thumbnail file from server
+    except Exception as e:
+        print(f"Error: {e}")
+        await msg.edit("Unsupported URL or failed to download 😐")  # Error message
 
 
 print("JEBotZ Started!")
