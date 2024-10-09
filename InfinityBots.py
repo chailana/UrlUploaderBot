@@ -24,7 +24,7 @@ JEBotZ = Client(
 )
 
 # start message
-@JEBotZ.on_edited_message(filters.command("start") & ~filters.edited)
+@JEBotZ.on_message(filters.command("start"))
 async def start(client, message):
     await message.reply("Hello There, I'm **Url Uploader Bot** 😉\n\nJust send me a url. Do /help for more details 🧐",
                         reply_markup=InlineKeyboardMarkup(
@@ -37,12 +37,12 @@ async def start(client, message):
                             ),)
 
 # help message
-@JEBotZ.on_edited_message(filters.command("help") & ~filters.edited)
+@JEBotZ.on_edited_message(filters.command("help"))
 async def help(client, message: Message):
     await message.reply("**Just send me a url** to upload it as a file.\n\n**NOTE:** Some urls are unsupported, if I said 'Unsupported Url 😐' try to transload your url via @HK_Transloader_BOT and send transloaded url to me.") 
 
 # url upload
-@JEBotZ.on_message(filters.regex(pattern=".*http.*") & ~filters.edited)
+@JEBotZ.on_message(filters.regex(pattern=".*http.*"))
 async def urlupload(client, message: Message):
     msg = await message.reply_text(text="Checking Url 🧐", quote=True)
     url = message.text
