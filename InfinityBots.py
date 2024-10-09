@@ -1,3 +1,4 @@
+import wget
 #    Copyright (c) 2021 Infinity BOTs <https://t.me/Infinity_BOTs>
 
 #    This program is free software: you can redistribute it and/or modify  
