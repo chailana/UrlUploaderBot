@@ -1,34 +1,33 @@
-# Base image with Python
+# Use an official lightweight Python image.
 FROM python:3.9-slim
 
-# Set environment variables
+# Set environment variables to prevent Python from writing pyc files and to buffer stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Set the working directory
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install necessary system packages and dependencies
+RUN apt-get update && apt-get install -y \
     ffmpeg \
-    gcc \
-    libpq-dev \
-    python3-dev \
-    && apt-get clean \
+    wget \
+    curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements.txt to the container
-COPY requirements.txt /app/
+# Create a directory for the application
+WORKDIR /app
+
+# Copy the requirements file into the image
+COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
-# Copy the rest of the bot files to the working directory
-COPY . /app/
+# Copy all the application files into the image
+COPY . .
 
-# Expose port (if your bot interacts with webhooks)
-# EXPOSE 8000 
+# Expose the port your app runs on, if needed
+# EXPOSE 8080 (only if your bot runs on a web server)
 
-# Command to run the bot
+# Run the bot (change bot.py to your main file if needed)
 CMD gunicorn app:app & python3 InfinityBots.py
