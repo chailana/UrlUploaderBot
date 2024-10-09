@@ -37,7 +37,7 @@ async def start(client, message):
                             ),)
 
 # help message
-@JEBotZ.on_message(filters.command("help") & ~filters.edited)
+@JEBotZ.on_edited_message(filters.command("help") & ~filters.edited)
 async def help(client, message: Message):
     await message.reply("**Just send me a url** to upload it as a file.\n\n**NOTE:** Some urls are unsupported, if I said 'Unsupported Url 😐' try to transload your url via @HK_Transloader_BOT and send transloaded url to me.") 
 
