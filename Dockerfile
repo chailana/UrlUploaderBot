@@ -29,5 +29,5 @@ COPY . .
 # Expose the port your app runs on, if needed
 # EXPOSE 8080 (only if your bot runs on a web server)
 
-# Run the bot (change bot.py to your main file if needed)
+# Run the bot (keep your original command)
 CMD gunicorn app:app & python3 InfinityBots.py
