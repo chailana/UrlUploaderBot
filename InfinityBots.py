@@ -1,3 +1,16 @@
+import traceback
+
+try:
+    # Code that may throw an exception
+except Exception as e:
+    value = e
+    tb = traceback.format_exc()  # Capture the traceback
+    # Properly format and log the exception
+    print(f"Error: {value}, Traceback: {tb}")
+
+
+
+
 import os
 import yt_dlp
 import requests  # Import requests to download the thumbnail
