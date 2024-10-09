@@ -1,22 +1,12 @@
 import wget
-#    Copyright (c) 2021 Infinity BOTs <https://t.me/Infinity_BOTs>
-
-#    This program is free software: you can redistribute it and/or modify  
-#    it under the terms of the GNU General Public License as published by  
-#    the Free Software Foundation, version 3.
-# 
-#    This program is distributed in the hope that it will be useful, but 
-#    WITHOUT ANY WARRANTY; without even the implied warranty of 
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
-#    General Public License for more details.
-
 import os
 import yt_dlp
+import requests  # Import requests to download the thumbnail
 from pyrogram import filters, Client
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from config import Config
 
-# login to pyrogram client
+# Login to pyrogram client
 JEBotZ = Client(
    "URL Uploader",
    api_id=Config.APP_ID,
@@ -24,7 +14,7 @@ JEBotZ = Client(
    bot_token=Config.TG_BOT_TOKEN,
 )
 
-# start message
+# Start message
 @JEBotZ.on_message(filters.command("start"))
 async def start(client, message):
     await message.reply("Hello There, I'm **Url Uploader Bot** 😉\n\nJust send me a url. Do /help for more details 🧐",
@@ -37,19 +27,18 @@ async def start(client, message):
                                     ]]
                             ),)
 
-# help message
+# Help message
 @JEBotZ.on_edited_message(filters.command("help"))
 async def help(client, message: Message):
     await message.reply("**Just send me a url** to upload it as a file.\n\n**NOTE:** Some urls are unsupported, if I said 'Unsupported Url 😐' try to transload your url via @HK_Transloader_BOT and send transloaded url to me.") 
 
-# url upload
+# URL upload
 @JEBotZ.on_message(filters.regex(pattern=".*http.*"))
 async def urlupload(client, message: Message):
     msg = await message.reply_text(text="Checking URL 🧐", quote=True)
     url = message.text
     cap = "@JEBotZ"
-    thurl = "https://telegra.ph/file/a23b8f38fde1914a4bbe9.jpg" 
-
+    
     # yt-dlp options to download video
     ydl_opts = {
         'outtmpl': '%(title)s.%(ext)s',  # Save file with title
@@ -65,17 +54,26 @@ async def urlupload(client, message: Message):
             info_dict = ydl.extract_info(url, download=True)
             downloaded_file = ydl.prepare_filename(info_dict)
 
-        # Download thumbnail
-        thumb = wget.download(thurl)
-        pak = "a23b8f38fde1914a4bbe9.jpg"
+            # Get the original thumbnail URL from the metadata
+            thumb_url = info_dict.get('thumbnail')
+            thumb_filename = "thumbnail.jpg"  # Filename to save thumbnail
+
+            # Download the original thumbnail
+            if thumb_url:
+                thumb_response = requests.get(thumb_url)
+                with open(thumb_filename, 'wb') as thumb_file:
+                    thumb_file.write(thumb_response.content)
+            else:
+                thumb_filename = None  # No thumbnail available
 
         await msg.edit("Uploading File 🤡")
-        await message.reply_document(downloaded_file, caption=cap, thumb=pak)  # upload downloaded file
+        await message.reply_video(downloaded_file, caption=cap, thumb=thumb_filename)  # upload downloaded file as video
         await msg.delete()
 
         # Remove downloaded files
         os.remove(downloaded_file)  # Remove downloaded media file from server
-        os.remove(thumb)  # Remove thumbnail file from server
+        if thumb_filename and os.path.exists(thumb_filename):
+            os.remove(thumb_filename)  # Remove thumbnail file from server
     except Exception as e:
         print(f"Error: {e}")
         await msg.edit("Unsupported URL or failed to download 😐")  # Error message
@@ -83,5 +81,5 @@ async def urlupload(client, message: Message):
 
 print("JEBotZ Started!")
 
-# run bot
+# Run bot
 JEBotZ.run()
