@@ -1,8 +1,8 @@
 import os
 import yt_dlp
-import requests
+import requests  # To download the thumbnail
 from pyrogram import filters, Client
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from config import Config
 
 # Login to Pyrogram client
@@ -17,7 +17,7 @@ JEBotZ = Client(
 @JEBotZ.on_message(filters.command("start"))
 async def start(client, message):
     await message.reply(
-        "Hello There, I'm **Url Uploader Bot** 😉\n\nJust send me a URL. Do /help for more details 🧐",
+        "Hello There, I'm **Url Uploader Bot** 😉\n\nJust send me a url. Do /help for more details 🧐",
         reply_markup=InlineKeyboardMarkup(
             [[
                 InlineKeyboardButton(
@@ -32,65 +32,34 @@ async def start(client, message):
 @JEBotZ.on_message(filters.command("help"))
 async def help(client, message: Message):
     await message.reply(
-        "**Just send me a URL** to upload it as a file.\n\n**NOTE:** Some URLs are unsupported. If I say 'Unsupported URL 😐', try transloading your URL via @HK_Transloader_BOT and send the transloaded URL to me."
+        "**Just send me a url** to upload it as a file.\n\n**NOTE:** Some urls are unsupported, if I said 'Unsupported Url 😐' try to transload your url via @HK_Transloader_BOT and send transloaded url to me."
     )
 
-# URL upload and format selection
-@JEBotZ.on_message(filters.regex(pattern=".*http.*"))
-async def urlupload(client, message: Message):
-    msg = await message.reply_text(text="Checking URL 🧐", quote=True)
-    url = message.text
-    cap = ""
-    
-    # yt-dlp options to fetch available formats
+# Function to fetch available quality formats using yt-dlp
+def get_video_formats(url):
+    ydl_opts = {'quiet': True}  # Suppress verbose output
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(url, download=False)
+        formats = info_dict.get('formats', [])
+        return formats
+
+# Callback query handler for format selection
+@JEBotZ.on_callback_query()
+async def callback_query_handler(client, callback_query):
+    url = callback_query.message.reply_to_message.text
+    selected_format_id = callback_query.data
+    cap = "@JEBotZ"
+
+    # Update yt-dlp options with selected format
     ydl_opts = {
-        'outtmpl': '%(title)s.%(ext)s',  # Save file with title
-        'noplaylist': True,  # Disable playlist download
-        'quiet': True,  # Suppress verbose output
+        'format': selected_format_id,
+        'outtmpl': '%(title)s.%(ext)s',
+        'quiet': True,
+        'cookiefile': 'cookies.txt',  # Path to your cookies file
     }
-
-    try:
-        # Using yt-dlp to fetch available formats
-        await msg.edit("Fetching available formats 😌")
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=False)  # Don't download yet
-            formats = info_dict.get('formats')  # Get available formats
-            
-            # Build a message listing the available formats
-            buttons = []
-            for f in formats:
-                quality = f.get('format_note', 'unknown')  # Quality description
-                size = f.get('filesize', 0)  # File size (if available)
-                file_size = f"{size // 1048576} MB" if size else "Unknown size"
-                format_id = f.get('format_id')
-                buttons.append([InlineKeyboardButton(f"{quality} - {file_size}", callback_data=f"format_{format_id}")])
-
-            # Send format options to the user as inline buttons
-            await msg.edit(
-                "Select the video quality:",
-                reply_markup=InlineKeyboardMarkup(buttons)
-            )
-
-    except Exception as e:
-        print(f"Error: {e}")
-        await msg.edit("Unsupported URL or failed to retrieve formats 😐")  # Error message
-
-# Callback handler for format selection
-@JEBotZ.on_callback_query(filters.regex(r"format_(\d+)"))
-async def format_callback(client, callback_query: CallbackQuery):
-    format_id = callback_query.data.split("_")[1]  # Extract format ID from callback
-    url = callback_query.message.reply_to_message.text  # Get the original URL from the message
-    msg = await callback_query.message.edit("Downloading the selected format... 😉")
     
-    # yt-dlp options to download the selected format
-    ydl_opts = {
-        'format': format_id,  # Download the selected format
-        'outtmpl': '%(title)s.%(ext)s',  # Save file with title
-        'noplaylist': True,  # Disable playlist download
-        'quiet': True,  # Suppress verbose output
-    }
-
     try:
+        await callback_query.message.edit("Downloading the selected format 😉")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             downloaded_file = ydl.prepare_filename(info_dict)
@@ -107,18 +76,53 @@ async def format_callback(client, callback_query: CallbackQuery):
             else:
                 thumb_filename = None  # No thumbnail available
 
-            # Upload the video with thumbnail
-            await msg.edit("Uploading File 🤡")
-            await callback_query.message.reply_video(downloaded_file, caption="@JEBotZ", thumb=thumb_filename)
-            
-            # Clean up files
-            os.remove(downloaded_file)
-            if thumb_filename and os.path.exists(thumb_filename):
-                os.remove(thumb_filename)
+        # Upload the downloaded video
+        await callback_query.message.edit("Uploading File 🤡")
+        await callback_query.message.reply_video(downloaded_file, caption=cap, thumb=thumb_filename)
+        await callback_query.message.delete()
+
+        # Remove the downloaded file and thumbnail
+        os.remove(downloaded_file)
+        if thumb_filename and os.path.exists(thumb_filename):
+            os.remove(thumb_filename)
     except Exception as e:
         print(f"Error: {e}")
-        await msg.edit("Failed to download the selected format 😐")
+        await callback_query.message.edit("Failed to download the video 😐")
 
-# Run bot
+
+# URL upload
+@JEBotZ.on_message(filters.regex(pattern=".*http.*"))
+async def urlupload(client, message: Message):
+    url = message.text
+    msg = await message.reply_text("Fetching available qualities... 🧐", quote=True)
+
+    try:
+        # Fetch available formats using yt-dlp
+        formats = get_video_formats(url)
+        if not formats:
+            await msg.edit("No formats available 😐")
+            return
+
+        # Create buttons for available formats
+        buttons = []
+        for f in formats:
+            if 'format_id' in f and 'format_note' in f and 'filesize' in f:
+                size_mb = f['filesize'] / 1024**2 if f['filesize'] else 0
+                buttons.append(
+                    [InlineKeyboardButton(f"{f['format_note']} - {size_mb:.2f}MB", callback_data=f['format_id'])]
+                )
+        
+        # Send the list of quality options as inline buttons
+        await msg.edit(
+            "Choose the quality to download:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+
+    except Exception as e:
+        print(f"Error: {e}")
+        await msg.edit("Failed to fetch video formats or unsupported URL 😐")
+
 print("JEBotZ Started!")
+
+# Run the bot
 JEBotZ.run()
