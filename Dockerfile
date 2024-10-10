@@ -8,9 +8,6 @@ ENV PYTHONUNBUFFERED=1
 # Install necessary system packages and dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    wget \
-    curl \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a directory for the application
@@ -25,9 +22,6 @@ RUN pip install --upgrade pip && \
 
 # Copy all the application files into the image
 COPY . .
-
-# Expose the port your app runs on, if needed
-# EXPOSE 8080 (only if your bot runs on a web server)
 
 # Run the bot (keep your original command)
 CMD gunicorn app:app & python3 InfinityBots.py
