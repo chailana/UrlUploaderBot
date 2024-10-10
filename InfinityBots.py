@@ -57,17 +57,14 @@ async def urlupload(client, message: Message):
             # Build a message listing the available formats
             buttons = []
             for f in formats:
-                quality = f.get('format_note') or f.get('height')  # Get quality (resolution or format note)
-                size = f.get('filesize')  # File size (if available)
-                file_size = f"{size // 1048576} MB" if size else "Unknown size"
-                format_id = f.get('format_id')
-                
-                # Update quality description if available
-                if not quality:
-                    quality = f"Unknown Quality"
+                quality = f.get('format_note', 'unknown')  # Quality description
+                size = f.get('filesize', None)  # File size (if available)
+                if size is not None:
+                    file_size = f"{size / (1024 * 1024):.2f} MB"  # Convert bytes to MB
                 else:
-                    quality = f"{quality} - {f.get('ext', 'unknown')}"  # Include file extension
+                    file_size = "Unknown size"
                 
+                format_id = f.get('format_id')
                 buttons.append([InlineKeyboardButton(f"{quality} - {file_size}", callback_data=f"format_{format_id}")])
 
             # Send format options to the user as inline buttons
