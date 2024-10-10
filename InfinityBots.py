@@ -40,7 +40,6 @@ async def help(client, message: Message):
 async def urlupload(client, message: Message):
     msg = await message.reply_text(text="Checking URL 🧐", quote=True)
     url = message.text
-    cap = ""
     
     # yt-dlp options to fetch available formats
     ydl_opts = {
@@ -50,7 +49,6 @@ async def urlupload(client, message: Message):
     }
 
     try:
-        # Using yt-dlp to fetch available formats
         await msg.edit("Fetching available formats 😌")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)  # Don't download yet
@@ -59,10 +57,17 @@ async def urlupload(client, message: Message):
             # Build a message listing the available formats
             buttons = []
             for f in formats:
-                quality = f.get('format_note', 'unknown')  # Quality description
-                size = f.get('filesize', 0)  # File size (if available)
+                quality = f.get('format_note') or f.get('height')  # Get quality (resolution or format note)
+                size = f.get('filesize')  # File size (if available)
                 file_size = f"{size // 1048576} MB" if size else "Unknown size"
                 format_id = f.get('format_id')
+                
+                # Update quality description if available
+                if not quality:
+                    quality = f"Unknown Quality"
+                else:
+                    quality = f"{quality} - {f.get('ext', 'unknown')}"  # Include file extension
+                
                 buttons.append([InlineKeyboardButton(f"{quality} - {file_size}", callback_data=f"format_{format_id}")])
 
             # Send format options to the user as inline buttons
