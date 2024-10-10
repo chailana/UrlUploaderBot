@@ -29,7 +29,7 @@ async def start(client, message):
     )
 
 # Help message
-@JEBotZ.on_edited_message(filters.command("help"))
+@JEBotZ.on_message(filters.command("help"))
 async def help(client, message: Message):
     await message.reply(
         "**Just send me a url** to upload it as a file.\n\n**NOTE:** Some urls are unsupported, if I said 'Unsupported Url 😐' try to transload your url via @HK_Transloader_BOT and send transloaded url to me."
@@ -40,7 +40,7 @@ async def help(client, message: Message):
 async def urlupload(client, message: Message):
     msg = await message.reply_text(text="Checking URL 🧐", quote=True)
     url = message.text
-    cap = "@JEBotZ"
+    cap = "69"
     
     # yt-dlp options to download video
     ydl_opts = {
