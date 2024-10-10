@@ -32,7 +32,7 @@ async def start(client, message):
 @JEBotZ.on_message(filters.command("help"))
 async def help(client, message: Message):
     await message.reply(
-        "**Just send me a URL** to upload it as a file.\n\n**NOTE:** Some URLs are unsupported, if I said 'Unsupported URL 😐' try to transload your URL via @HK_Transloader_BOT and send the transloaded URL to me."
+        "**Just send me a URL** to upload it as a file.\n\n**NOTE:** Some URLs are unsupported, if I say 'Unsupported URL 😐', try to transload your URL via @HK_Transloader_BOT and send the transloaded URL to me."
     )
 
 # Function to fetch available quality formats using yt-dlp
@@ -76,7 +76,7 @@ async def callback_query_handler(client, callback_query):
                 thumb_filename = None  # No thumbnail available
 
         # Upload the downloaded video
-        await callback_query.message.edit("Uploading File 🤡")
+        await callback_query.message.edit("Uploading File ☠️")
         await callback_query.message.reply_video(downloaded_file, caption=cap, thumb=thumb_filename)
         await callback_query.message.delete()
 
@@ -105,9 +105,8 @@ async def urlupload(client, message: Message):
         # Create buttons for available formats
         buttons = []
         for f in formats:
-            if 'format_id' in f and 'format_note' in f and 'filesize' in f:
-                size_mb = f['filesize'] / 1024**2 if f['filesize'] else 0
-                # Limit the number of buttons per row to avoid markup errors
+            if 'format_id' in f and 'format_note' in f:  # Removed 'filesize' filter
+                size_mb = f.get('filesize', 0) / 1024**2 if f.get('filesize') else 'Unknown size'
                 buttons.append(
                     [InlineKeyboardButton(f"{f['format_note']} - {size_mb:.2f}MB", callback_data=f['format_id'])]
                 )
