@@ -55,7 +55,6 @@ async def callback_query_handler(client, callback_query):
         'format': selected_format_id,
         'outtmpl': '%(title)s.%(ext)s',
         'quiet': True,
-        'cookiefile': 'cookies.txt',  # Path to your cookies file
     }
     
     try:
