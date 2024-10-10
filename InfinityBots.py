@@ -59,13 +59,18 @@ async def urlupload(client, message: Message):
             for f in formats:
                 quality = f.get('format_note', 'unknown')  # Quality description
                 size = f.get('filesize', None)  # File size (if available)
+                
+                # Check if size is available and convert to MB if so
                 if size is not None:
                     file_size = f"{size / (1024 * 1024):.2f} MB"  # Convert bytes to MB
                 else:
                     file_size = "Unknown size"
                 
                 format_id = f.get('format_id')
-                buttons.append([InlineKeyboardButton(f"{quality} - {file_size}", callback_data=f"format_{format_id}")])
+                resolution = f.get('height', 'unknown')  # Get resolution if available
+                
+                # Update button label to include resolution and size
+                buttons.append([InlineKeyboardButton(f"{resolution}p - {file_size}", callback_data=f"format_{format_id}")])
 
             # Send format options to the user as inline buttons
             await msg.edit(
@@ -101,7 +106,7 @@ async def format_callback(client, callback_query: CallbackQuery):
             thumb_url = info_dict.get('thumbnail')
             thumb_filename = "thumbnail.jpg"  # Filename to save thumbnail
 
-            # Download the original thumbnail
+            # Download the original thumbnail if available
             if thumb_url:
                 thumb_response = requests.get(thumb_url)
                 with open(thumb_filename, 'wb') as thumb_file:
@@ -113,7 +118,7 @@ async def format_callback(client, callback_query: CallbackQuery):
             await msg.edit("Uploading File 🤡")
             await callback_query.message.reply_video(downloaded_file, caption="@JEBotZ", thumb=thumb_filename)
             
-            # Clean up files
+            # Clean up files after upload
             os.remove(downloaded_file)
             if thumb_filename and os.path.exists(thumb_filename):
                 os.remove(thumb_filename)
