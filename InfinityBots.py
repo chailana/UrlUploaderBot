@@ -41,35 +41,47 @@ async def help(client, message: Message):
 async def urlupload(client, message: Message):
     msg = await message.reply_text(text="Checking URL 🧐", quote=True)
     url = message.text
-    
-    # Check if URL is a Telegram URL (e.g., t.me)
-    if "t.me" in url:
+
+    # Check if URL is a Telegram URL with range format (e.g., t.me/<username>/1-1000)
+    if "t.me" in url and "-" in url:
         try:
-            # Extract the message ID and chat ID from the Telegram URL
-            # Assuming the URL format is: https://t.me/<username>/<message_id>
+            # Extract username and message ID range
             parts = url.split('/')
             username = parts[-2]
-            message_id = int(parts[-1])
+            message_range = parts[-1]
+            start_message_id, end_message_id = message_range.split('-')
 
-            # Get the message from the chat
-            telegram_message = await client.get_messages(username, message_id)
+            start_message_id = int(start_message_id)
             
-            # Check if the message contains media
-            if telegram_message.media:
-                # Download the media file
-                download_path = await telegram_message.download()
-
-                # Reply with the downloaded file
-                await message.reply_document(download_path, caption="@JEBotZ")
-                
-                await msg.edit("Telegram URL processed and file uploaded successfully 😉")
+            # Handle 'infinity' as a dynamic range
+            if end_message_id.lower() == "infinity":
+                chat = await client.get_chat(username)
+                end_message_id = chat.last_message_id
             else:
-                await msg.edit("This Telegram message does not contain any media 😐")
+                end_message_id = int(end_message_id)
+
+            # Download all messages in the range
+            for msg_id in range(start_message_id, end_message_id + 1):
+                telegram_message = await client.get_messages(username, msg_id)
+                
+                # Check if the message contains media
+                if telegram_message.media:
+                    download_path = await telegram_message.download()
+                    
+                    # Reply with the downloaded file
+                    await message.reply_document(download_path, caption=f"Downloaded message {msg_id} from {username}")
+                    
+                    # Optional: You can clean up the files after sending
+                    os.remove(download_path)
+                else:
+                    await message.reply_text(f"Message {msg_id} does not contain media 😐")
+
+            await msg.edit(f"Downloaded messages from {start_message_id} to {end_message_id} successfully 😉")
 
         except (MessageIdInvalid, MessageNotModified) as e:
             print(f"Error: {e}")
             await msg.edit("Failed to retrieve Telegram message or media 😐")
-
+        
         return  # Stop further execution since it's a Telegram URL
 
     # Otherwise, proceed with yt-dlp for other URLs
