@@ -7,11 +7,11 @@ from pyrogram.errors import MessageNotModified, MessageIdInvalid, ChatAdminRequi
 from config import Config
 
 # Your session string generated from Pyrogram StringSession
-STRING_SESSION = "dudydu"
+string_session = "dudydu"
 
 # Login to Pyrogram client using the session string
 JEBotZ = Client(
-    string=Config.STRING_SESSION,  # Use session string here
+    string_session=Config.STRING_SESSION,  # Use session string here
     api_id=Config.APP_ID,
     api_hash=Config.API_HASH,
     bot_token=Config.TG_BOT_TOKEN
