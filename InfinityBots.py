@@ -1,7 +1,6 @@
 import os
 import yt_dlp
 import requests
-import asyncio
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from pyrogram import Client, filters
@@ -9,7 +8,7 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, 
 from pyrogram.errors import MessageNotModified, MessageIdInvalid, ChatAdminRequired, InviteHashExpired
 from config import Config
 
-# Your session string for Telethon
+# Your session string
 string_session = Config.STRING_SESSION  # Ensure this is set correctly
 
 # Login to Telethon client using the session string for private channels/groups
@@ -23,30 +22,10 @@ pyrogram_client = Client(
     bot_token=Config.TG_BOT_TOKEN
 )
 
-# Define async main function to run both clients
-async def main():
-    await asyncio.gather(
-        pyrogram_client.start(),
-        telethon_client.start()
-    )
-
-# Signal handler to cleanup on exit
-async def cleanup():
-    await pyrogram_client.stop()
-    await telethon_client.disconnect()
-
-def signal_handler(sig, frame):
-    print('Stopping the bot...')
-    asyncio.run(cleanup())
-    exit(0)
-
-import signal
-signal.signal(signal.SIGINT, signal_handler)
-
 # Start the bot
 if __name__ == "__main__":
-    print("Starting the bot...")
-    asyncio.run(main())  # Run both clients
+    pyrogram_client.start()
+    telethon_client.start()
 
 # Start message
 @pyrogram_client.on_message(filters.command("start"))
@@ -197,20 +176,32 @@ async def format_callback(client, callback_query: CallbackQuery):
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=False)  # Get information without downloading
-            filename = ydl.prepare_filename(info_dict)  # Prepare the filename
+            info_dict = ydl.extract_info(url, download=True)
+            downloaded_file = ydl.prepare_filename(info_dict)
 
-            await msg.edit("Downloading video... Please wait... ⏳")
-            ydl.download([url])  # Download the video using the selected format
+            # Get the original thumbnail URL from the metadata
+            thumb_url = info_dict.get('thumbnail')
+            thumb_filename = "thumbnail.jpg"  # Filename to save thumbnail
 
-            # Send the downloaded file to the user
-            await msg.edit("Uploading the file... 🚀")
-            await callback_query.message.reply_document(filename)
+            # Download the original thumbnail if available
+            if thumb_url:
+                thumb_response = requests.get(thumb_url)
+                with open(thumb_filename, 'wb') as thumb_file:
+                    thumb_file.write(thumb_response.content)
+            else:
+                thumb_filename = None  # No thumbnail available
 
-            # Clean up the downloaded file
-            os.remove(filename)
-            await msg.edit("File uploaded successfully! 😊")
-
+            # Upload the video with thumbnail
+            await msg.edit("Uploading File 🤡")
+            await callback_query.message.reply_video(downloaded_file, caption="@JEBotZ", thumb=thumb_filename)
+            
+            # Clean up files after upload
+            os.remove(downloaded_file)
+            if thumb_filename and os.path.exists(thumb_filename):
+                os.remove(thumb_filename)
     except Exception as e:
         print(f"Error: {e}")
-        await msg.edit("Failed to download or upload the file 😐")
+        await msg.edit("Failed to download the selected format 😐")
+
+# Run bot
+print("JEBotZ
