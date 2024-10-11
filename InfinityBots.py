@@ -2,6 +2,7 @@ import os
 import yt_dlp
 import requests
 from pyrogram import filters, Client
+from pyrogram.session import StringSession  # Import StringSession
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.errors import MessageNotModified, MessageIdInvalid, ChatAdminRequired, InviteHashExpired
 from config import Config
@@ -11,7 +12,7 @@ string_session = "dudydu"
 
 # Login to Pyrogram client using the session string
 JEBotZ = Client(
-    string_session=Config.STRING_SESSION,  # Use session string here
+    session_name=StringSession(Config.STRING_SESSION),  # Use StringSession for your session
     api_id=Config.APP_ID,
     api_hash=Config.API_HASH,
     bot_token=Config.TG_BOT_TOKEN
