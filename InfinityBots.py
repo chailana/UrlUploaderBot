@@ -12,7 +12,7 @@ from config import Config
 string_session = Config.STRING_SESSION  # Ensure this is set correctly
 
 # Login to Telethon client using the session string for private channels/groups
-telethon_client = TelegramClient(StringSession(string_session), Config.APP_ID, Config.API_HASH, Config.TG_BOT_TOKEN)
+telethon_client = TelegramClient(StringSession(string_session), Config.APP_ID, Config.API_HASH)
 
 # Login to Pyrogram client for public use
 pyrogram_client = Client(
