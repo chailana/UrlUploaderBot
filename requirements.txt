@@ -1,6 +1,6 @@
 yt-dlp
 flask
 gunicorn
-pyrogram
+pyrogram>=2.0
 tgcrypto
 wget
