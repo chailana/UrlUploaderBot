@@ -2,14 +2,14 @@ import os
 import yt_dlp
 import requests
 import asyncio
-from telethon import TelegramClient
+from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.errors import MessageNotModified, MessageIdInvalid, ChatAdminRequired, InviteHashExpired
 from config import Config
 
-#Your session string for Telethon
+# Your session string for Telethon
 string_session = Config.STRING_SESSION  # Ensure this is set correctly for user session
 bot_token = Config.TG_BOT_TOKEN  # Ensure this is set correctly for the bot
 
@@ -18,25 +18,28 @@ telethon_client_bot = TelegramClient('bot_session', Config.APP_ID, Config.API_HA
 
 # Login to Telethon client using the session string for private channels/groups
 telethon_client_user = TelegramClient(StringSession(string_session), Config.APP_ID, Config.API_HASH)
+
 # Login to Pyrogram client for public use
 pyrogram_client = Client(
     "public_bot",
     api_id=Config.APP_ID,
     api_hash=Config.API_HASH,
-    bot_token=Config.TG_BOT_TOKEN
+    bot_token=bot_token
 )
 
 # Define async main function to run both clients
 async def main():
     await asyncio.gather(
         pyrogram_client.start(),
-        telethon_client.start()
+        telethon_client_user.start(),
+        telethon_client_bot.start()
     )
 
 # Signal handler to cleanup on exit
 async def cleanup():
     await pyrogram_client.stop()
-    await telethon_client.disconnect()
+    await telethon_client_user.disconnect()
+    await telethon_client_bot.disconnect()
 
 def signal_handler(sig, frame):
     print('Stopping the bot...')
@@ -92,7 +95,7 @@ async def urlupload(client, message: Message):
         try:
             await msg.edit("Joining the private channel/group... 😌")
             invite_link = url.split("t.me/")[1]  # Extract invite link after t.me/
-            result = await join_private_channel(telethon_client, invite_link)  # Use Telethon to join
+            result = await join_private_channel(telethon_client_bot, invite_link)  # Use Telethon bot client to join
             
             if result == "admin_required":
                 await msg.edit("Unable to join. Bot needs admin rights to join this chat 😐")
@@ -113,7 +116,7 @@ async def urlupload(client, message: Message):
             message_id = int(parts[-1])
             
             await msg.edit(f"Fetching message {message_id} from channel {channel_id} 😌")
-            telegram_message = await telethon_client.get_messages(channel_id, message_id)  # Use Telethon to fetch messages
+            telegram_message = await telethon_client_user.get_messages(channel_id, message_id)  # Use Telethon user client to fetch messages
 
             # Check if the message contains media
             if telegram_message.media:
@@ -189,37 +192,29 @@ async def format_callback(client, callback_query: CallbackQuery):
     format_id = callback_query.data.split("_")[1]  # Extract format ID from callback
     url = callback_query.message.reply_to_message.text  # Get the original URL from the message
     msg = await callback_query.message.edit("Downloading the selected format... 😉")
-    
+
     # yt-dlp options to download the selected format
     ydl_opts = {
-        'format': format_id,  # Download the selected format
-        'outtmpl': '%(title)s.%(ext)s',  # Save file with title
-        'noplaylist': True,  # Disable playlist download
-        'quiet': True,  # Suppress verbose output
+        'format': format_id,
+        'outtmpl': '%(title)s.%(ext)s',
     }
-
+    
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=False)  # Get information without downloading
-            filename = ydl.prepare_filename(info_dict)  # Prepare the filename
+            ydl.download([url])  # Download the video using the specified format
 
-            await msg.edit("Downloading video... Please wait... ⏳")
-            ydl.download([url])  # Download the video using the selected format
-
-            # Send the downloaded file to the user
-            await msg.edit("Uploading the file... 🚀")
-            await callback_query.message.reply_document(filename)
-
-            # Clean up the downloaded file
-            os.remove(filename)
-            await msg.edit("File uploaded successfully! 😊")
-
+        await msg.edit("Download completed! Sending the file... 😉")
+        
+        # Get the downloaded file name (it should match the output template)
+        title = ydl.prepare_filename(info_dict)
+        await callback_query.message.reply_document(title)  # Send the downloaded file
+        
+        await msg.edit("File sent successfully! 😄")
     except Exception as e:
         print(f"Error: {e}")
-        await msg.edit("Failed to download or upload the file 😐")
+        await msg.edit("Failed to download the video. Please try again later. 😐")
 
-# Run the bot
+# Run the bot with both Telethon and Pyrogram clients
 if __name__ == "__main__":
     print("Starting the bot...")
-    asyncio.run(main())
-    
+    asyncio.run(main())  # Run both clients
