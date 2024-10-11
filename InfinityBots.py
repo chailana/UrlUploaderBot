@@ -9,12 +9,15 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, 
 from pyrogram.errors import MessageNotModified, MessageIdInvalid, ChatAdminRequired, InviteHashExpired
 from config import Config
 
-# Your session string for Telethon
-string_session = Config.STRING_SESSION  # Ensure this is set correctly
+Your session string for Telethon
+string_session = Config.STRING_SESSION  # Ensure this is set correctly for user session
+bot_token = Config.TG_BOT_TOKEN  # Ensure this is set correctly for the bot
+
+# Login to Telethon client using the bot token for bot functions
+telethon_client_bot = TelegramClient('bot_session', Config.APP_ID, Config.API_HASH).start(bot_token=bot_token)
 
 # Login to Telethon client using the session string for private channels/groups
-telethon_client = TelegramClient(StringSession(string_session), Config.APP_ID, Config.API_HASH)
-
+telethon_client_user = TelegramClient(StringSession(string_session), Config.APP_ID, Config.API_HASH)
 # Login to Pyrogram client for public use
 pyrogram_client = Client(
     "public_bot",
