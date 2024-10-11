@@ -1,8 +1,9 @@
 import os
 import yt_dlp
 import requests
+from telethon import TelegramClient
+from telethon.sessions import StringSession
 from pyrogram import Client, filters
-from pyrogram.session import StringSession  # Import StringSession correctly
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.errors import MessageNotModified, MessageIdInvalid, ChatAdminRequired, InviteHashExpired
 from config import Config
@@ -10,9 +11,12 @@ from config import Config
 # Your session string
 string_session = Config.STRING_SESSION  # Ensure this is set correctly
 
-# Login to Pyrogram client using the session string
-JEBotZ = Client(
-    session=StringSession(string_session),  # Initialize StringSession
+# Login to Telethon client using the session string for private channels/groups
+telethon_client = TelegramClient(StringSession(string_session), Config.APP_ID, Config.API_HASH)
+
+# Login to Pyrogram client for public use
+pyrogram_client = Client(
+    "public_bot",
     api_id=Config.APP_ID,
     api_hash=Config.API_HASH,
     bot_token=Config.TG_BOT_TOKEN
@@ -20,25 +24,24 @@ JEBotZ = Client(
 
 # Start the bot
 if __name__ == "__main__":
-    JEBotZ.run()
+    pyrogram_client.start()
+    telethon_client.start()
 
 # Start message
-@JEBotZ.on_message(filters.command("start"))
+@pyrogram_client.on_message(filters.command("start"))
 async def start(client, message):
     await message.reply(
         "Hello There, I'm **Url Uploader Bot** 😉\n\nJust send me a URL. Do /help for more details 🧐",
         reply_markup=InlineKeyboardMarkup(
             [[
-                InlineKeyboardButton(
-                    "Source", url="https://github.com/ImJanindu/UrlUploaderBot"),
-                InlineKeyboardButton(
-                    "Dev", url="https://t.me/Infinity_BOTs")
+                InlineKeyboardButton("Source", url="https://github.com/ImJanindu/UrlUploaderBot"),
+                InlineKeyboardButton("Dev", url="https://t.me/Infinity_BOTs")
             ]]
         ),
     )
 
 # Help message
-@JEBotZ.on_message(filters.command("help"))
+@pyrogram_client.on_message(filters.command("help"))
 async def help(client, message: Message):
     await message.reply(
         "**Just send me a URL** to upload it as a file.\n\n**NOTE:** Some URLs are unsupported. If I say 'Unsupported URL 😐', try transloading your URL via @HK_Transloader_BOT and send the transloaded URL to me."
@@ -55,7 +58,7 @@ async def join_private_channel(client, invite_link):
         return "invalid_link"  # Invite link is invalid or expired
 
 # URL upload and format selection
-@JEBotZ.on_message(filters.regex(pattern=".*http.*"))
+@pyrogram_client.on_message(filters.regex(pattern=".*http.*"))
 async def urlupload(client, message: Message):
     msg = await message.reply_text(text="Checking URL 🧐", quote=True)
     url = message.text
@@ -65,7 +68,7 @@ async def urlupload(client, message: Message):
         try:
             await msg.edit("Joining the private channel/group... 😌")
             invite_link = url.split("t.me/")[1]  # Extract invite link after t.me/
-            result = await join_private_channel(client, invite_link)
+            result = await join_private_channel(telethon_client, invite_link)  # Use Telethon to join
             
             if result == "admin_required":
                 await msg.edit("Unable to join. Bot needs admin rights to join this chat 😐")
@@ -86,7 +89,7 @@ async def urlupload(client, message: Message):
             message_id = int(parts[-1])
             
             await msg.edit(f"Fetching message {message_id} from channel {channel_id} 😌")
-            telegram_message = await client.get_messages(channel_id, message_id)
+            telegram_message = await telethon_client.get_messages(channel_id, message_id)  # Use Telethon to fetch messages
 
             # Check if the message contains media
             if telegram_message.media:
@@ -157,7 +160,7 @@ async def urlupload(client, message: Message):
         await msg.edit("Unsupported URL or failed to retrieve formats 😐")  # Error message
 
 # Callback handler for format selection
-@JEBotZ.on_callback_query(filters.regex(r"format_(\d+)"))
+@pyrogram_client.on_callback_query(filters.regex(r"format_(\d+)"))
 async def format_callback(client, callback_query: CallbackQuery):
     format_id = callback_query.data.split("_")[1]  # Extract format ID from callback
     url = callback_query.message.reply_to_message.text  # Get the original URL from the message
@@ -202,4 +205,4 @@ async def format_callback(client, callback_query: CallbackQuery):
 
 # Run bot
 print("JEBotZ Started!")
-JEBotZ.run()
+pyrogram_client.run()
