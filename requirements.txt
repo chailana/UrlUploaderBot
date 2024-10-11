@@ -3,4 +3,4 @@ flask
 gunicorn
 pyrogram>=2.0
 tgcrypto
-wget
+telethon
