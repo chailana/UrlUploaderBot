@@ -3,10 +3,10 @@ import yt_dlp
 import requests
 from pyrogram import filters, Client
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from pyrogram.errors import MessageNotModified, MessageIdInvalid
+from pyrogram.errors import MessageNotModified, MessageIdInvalid, ChatAdminRequired, InviteHashExpired
 from config import Config
 
-# Login to Pyrogram client
+# Login to Pyrogram client (You will need a session for private channels/groups)
 JEBotZ = Client(
     "URL Uploader",
     api_id=Config.APP_ID,
@@ -36,53 +36,68 @@ async def help(client, message: Message):
         "**Just send me a URL** to upload it as a file.\n\n**NOTE:** Some URLs are unsupported. If I say 'Unsupported URL 😐', try transloading your URL via @HK_Transloader_BOT and send the transloaded URL to me."
     )
 
+# Join private channels or groups via invite link
+async def join_private_channel(client, invite_link):
+    try:
+        chat = await client.join_chat(invite_link)  # Join the channel or group
+        return chat.id  # Return the chat ID for future references
+    except ChatAdminRequired:
+        return "admin_required"  # Bot needs admin privileges to join
+    except InviteHashExpired:
+        return "invalid_link"  # Invite link is invalid or expired
+
 # URL upload and format selection
 @JEBotZ.on_message(filters.regex(pattern=".*http.*"))
 async def urlupload(client, message: Message):
     msg = await message.reply_text(text="Checking URL 🧐", quote=True)
     url = message.text
 
-    # Check if URL is a Telegram URL with range format (e.g., t.me/<username>/1-1000)
-    if "t.me" in url and "-" in url:
+    # Check if the URL is a private Telegram invite link
+    if "t.me/joinchat/" in url or "t.me/+" in url:
         try:
-            # Extract username and message ID range
-            parts = url.split('/')
-            username = parts[-2]
-            message_range = parts[-1]
-            start_message_id, end_message_id = message_range.split('-')
-
-            start_message_id = int(start_message_id)
+            await msg.edit("Joining the private channel/group... 😌")
+            invite_link = url.split("t.me/")[1]  # Extract invite link after t.me/
+            result = await join_private_channel(client, invite_link)
             
-            # Handle 'infinity' as a dynamic range
-            if end_message_id.lower() == "infinity":
-                chat = await client.get_chat(username)
-                end_message_id = chat.last_message_id
+            if result == "admin_required":
+                await msg.edit("Unable to join. Bot needs admin rights to join this chat 😐")
+            elif result == "invalid_link":
+                await msg.edit("Invalid or expired invite link 😐")
             else:
-                end_message_id = int(end_message_id)
-
-            # Download all messages in the range
-            for msg_id in range(start_message_id, end_message_id + 1):
-                telegram_message = await client.get_messages(username, msg_id)
-                
-                # Check if the message contains media
-                if telegram_message.media:
-                    download_path = await telegram_message.download()
-                    
-                    # Reply with the downloaded file
-                    await message.reply_document(download_path, caption=f"Downloaded message {msg_id} from {username}")
-                    
-                    # Optional: You can clean up the files after sending
-                    os.remove(download_path)
-                else:
-                    await message.reply_text(f"Message {msg_id} does not contain media 😐")
-
-            await msg.edit(f"Downloaded messages from {start_message_id} to {end_message_id} successfully 😉")
-
-        except (MessageIdInvalid, MessageNotModified) as e:
+                await msg.edit(f"Successfully joined the private chat. Chat ID: {result} 😉")
+        except Exception as e:
             print(f"Error: {e}")
-            await msg.edit("Failed to retrieve Telegram message or media 😐")
-        
-        return  # Stop further execution since it's a Telegram URL
+            await msg.edit("Failed to join the private channel/group 😐")
+        return  # Stop further execution if it's an invite link
+
+    # Check if URL is in the format https://c/<channel_id>/<message_id>
+    elif "https://c/" in url:
+        try:
+            parts = url.split('/')
+            channel_id = int(parts[-2])
+            message_id = int(parts[-1])
+            
+            await msg.edit(f"Fetching message {message_id} from channel {channel_id} 😌")
+            telegram_message = await client.get_messages(channel_id, message_id)
+
+            # Check if the message contains media
+            if telegram_message.media:
+                download_path = await telegram_message.download()
+                
+                # Reply with the downloaded file
+                await message.reply_document(download_path, caption=f"Downloaded message {message_id} from channel {channel_id}")
+                
+                # Optional: Clean up the files after sending
+                os.remove(download_path)
+            else:
+                await msg.edit(f"Message {message_id} does not contain media 😐")
+
+        except MessageIdInvalid:
+            await msg.edit("Invalid message ID 😐")
+        except Exception as e:
+            print(f"Error: {e}")
+            await msg.edit("Failed to retrieve the message 😐")
+        return  # Stop further execution if it's a private channel/group message
 
     # Otherwise, proceed with yt-dlp for other URLs
     ydl_opts = {
