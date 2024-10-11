@@ -1,7 +1,7 @@
 import os
 import yt_dlp
-import requests
 import asyncio
+import signal
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from pyrogram import Client, filters
@@ -46,17 +46,11 @@ def signal_handler(sig, frame):
     asyncio.run(cleanup())
     exit(0)
 
-import signal
 signal.signal(signal.SIGINT, signal_handler)
-
-# Start the bot
-if __name__ == "__main__":
-    print("Starting the bot...")
-    asyncio.run(main())  # Run both clients
 
 # Start message
 @pyrogram_client.on_message(filters.command("start"))
-async def start(client, message):
+async def start(client, message: Message):
     await message.reply(
         "Hello There, I'm **Url Uploader Bot** 😉\n\nJust send me a URL. Do /help for more details 🧐",
         reply_markup=InlineKeyboardMarkup(
@@ -201,7 +195,7 @@ async def format_callback(client, callback_query: CallbackQuery):
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])  # Download the video using the specified format
+            info_dict = ydl.extract_info(url, download=True)  # Download the video using the specified format
 
         await msg.edit("Download completed! Sending the file... 😉")
         
