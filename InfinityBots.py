@@ -11,7 +11,6 @@ string_session = "dudydu"
 
 # Login to Pyrogram client using the session string
 JEBotZ = Client(
-    session_name=StringSession(string_session),  # Use StringSession for your session
     api_id=Config.APP_ID,
     api_hash=Config.API_HASH,
     bot_token=Config.TG_BOT_TOKEN
