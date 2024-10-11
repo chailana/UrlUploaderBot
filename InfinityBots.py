@@ -204,4 +204,4 @@ async def format_callback(client, callback_query: CallbackQuery):
         await msg.edit("Failed to download the selected format 😐")
 
 # Run bot
-print("JEBotZ
+print("JEBotZ")
