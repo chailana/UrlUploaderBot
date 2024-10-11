@@ -3,6 +3,7 @@ import yt_dlp
 import requests
 from pyrogram import filters, Client
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.errors import MessageNotModified, MessageIdInvalid
 from config import Config
 
 # Login to Pyrogram client
@@ -41,7 +42,37 @@ async def urlupload(client, message: Message):
     msg = await message.reply_text(text="Checking URL 🧐", quote=True)
     url = message.text
     
-    # yt-dlp options to fetch available formats
+    # Check if URL is a Telegram URL (e.g., t.me)
+    if "t.me" in url:
+        try:
+            # Extract the message ID and chat ID from the Telegram URL
+            # Assuming the URL format is: https://t.me/<username>/<message_id>
+            parts = url.split('/')
+            username = parts[-2]
+            message_id = int(parts[-1])
+
+            # Get the message from the chat
+            telegram_message = await client.get_messages(username, message_id)
+            
+            # Check if the message contains media
+            if telegram_message.media:
+                # Download the media file
+                download_path = await telegram_message.download()
+
+                # Reply with the downloaded file
+                await message.reply_document(download_path, caption="@JEBotZ")
+                
+                await msg.edit("Telegram URL processed and file uploaded successfully 😉")
+            else:
+                await msg.edit("This Telegram message does not contain any media 😐")
+
+        except (MessageIdInvalid, MessageNotModified) as e:
+            print(f"Error: {e}")
+            await msg.edit("Failed to retrieve Telegram message or media 😐")
+
+        return  # Stop further execution since it's a Telegram URL
+
+    # Otherwise, proceed with yt-dlp for other URLs
     ydl_opts = {
         'outtmpl': '%(title)s.%(ext)s',  # Save file with title
         'noplaylist': True,  # Disable playlist download
