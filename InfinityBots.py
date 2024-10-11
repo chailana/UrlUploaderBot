@@ -54,15 +54,23 @@ async def urlupload(client, message: Message):
             info_dict = ydl.extract_info(url, download=False)  # Don't download yet
             formats = info_dict.get('formats')  # Get available formats
             
+            # Video duration (for size calculation)
+            duration = info_dict.get('duration', 0)  # Duration in seconds
+            
             # Build a message listing the available formats
             buttons = []
             for f in formats:
                 quality = f.get('format_note', 'unknown')  # Quality description
                 size = f.get('filesize', None)  # File size (if available)
-                
-                # Check if size is available and convert to MB if so
+                bitrate = f.get('tbr', None)  # Total bitrate in kbps
+
+                # Check if size is available and convert to MB if so, otherwise estimate
                 if size is not None:
                     file_size = f"{size / (1024 * 1024):.2f} MB"  # Convert bytes to MB
+                elif bitrate and duration:
+                    # Estimate file size if bitrate and duration are available
+                    estimated_size = (bitrate * 1000 / 8) * duration  # Size in bytes
+                    file_size = f"~{estimated_size / (1024 * 1024):.2f} MB"
                 else:
                     file_size = "Unknown size"
                 
