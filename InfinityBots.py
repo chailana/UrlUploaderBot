@@ -9,7 +9,7 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, 
 from pyrogram.errors import MessageNotModified, MessageIdInvalid, ChatAdminRequired, InviteHashExpired
 from config import Config
 
-Your session string for Telethon
+#Your session string for Telethon
 string_session = Config.STRING_SESSION  # Ensure this is set correctly for user session
 bot_token = Config.TG_BOT_TOKEN  # Ensure this is set correctly for the bot
 
